@@ -9,7 +9,7 @@ public static class HelperExtensions
         {
             for (int col = Math.Max(coordinate.Col - 1, 0); col <= Math.Min(coordinate.Col + 1, stringMatrix[row].Length - 1); col++)
             {
-                if ((row,col) == (coordinate.Row, coordinate.Col)) continue;
+                if ((row, col) == (coordinate.Row, coordinate.Col)) continue;
 
                 yield return stringMatrix[row][col];
             }
@@ -22,7 +22,7 @@ public static class HelperExtensions
         {
             for (int col = Math.Max(coordinate.Col - 1, 0); col <= Math.Min(coordinate.Col + 1, size.Cols - 1); col++)
             {
-                if ((row,col) == (coordinate.Row, coordinate.Col)) continue;
+                if ((row, col) == (coordinate.Row, coordinate.Col)) continue;
 
                 yield return new Coordinate(row, col);
             }
@@ -66,6 +66,11 @@ public static class HelperExtensions
     public static bool Between(this long value, long minValue, long maxValue)
     {
         return (value >= minValue && value <= maxValue);
+    }
+
+    public static int ToInt(this bool value)
+    {
+        return value ? 1 : 0;
     }
 }
 

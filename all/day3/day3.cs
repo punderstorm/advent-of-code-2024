@@ -6,110 +6,43 @@ public static class day3
 {
     public static void Run()
     {
-        var schematics = System.IO.File.ReadAllLines(@$"day3/input.txt").ToList();
+        var corruptMemory = string.Join("", System.IO.File.ReadAllLines(@$"day3/input.txt"));
 
-        List<PartNumber> schematicPartNumbers;
-        List<Gear> schematicGears;
-        (schematicPartNumbers, schematicGears) = ReadSchematics(schematics);
-
-        Part1(schematicPartNumbers);
-        Part2(schematicGears);
-    }
-
-    private static (List<PartNumber>, List<Gear>) ReadSchematics(List<string> schematics)
-    {
-        var numRows = schematics.Count;
-        var numCols = schematics.First().Length;
-        PartNumber? currentSchematicPartNumber = null;
-        var schematicPartNumbers = new List<PartNumber>();
-        var schematicGears = new List<Gear>();
-
-        for(var row = 0; row < numRows; row++)
-        {
-            for(var col = 0; col < numCols; col++)
-            {
-                var colValue = schematics[row][col];
-                var isPartNumber = colValue.IsNumeric();
-                var isSymbol = colValue.IsSymbol();
-                var isGear = (colValue == '*');
-
-                if (isPartNumber && currentSchematicPartNumber == null)
-                {
-                    currentSchematicPartNumber = new PartNumber { Value = $"{colValue}", StartCoordinate = new Coordinate(row, col) };
-                }
-                else if (currentSchematicPartNumber != null && isPartNumber)
-                {
-                    currentSchematicPartNumber.Value += $"{colValue}";
-                }
-                else if (currentSchematicPartNumber != null && (!isPartNumber || col == (numCols - 1)))
-                {
-                    var startCol = currentSchematicPartNumber.StartCoordinate?.Col ?? 0;
-                    var hasSymbolNeighbor = false;
-                    Enumerable.Range(startCol, currentSchematicPartNumber.Value.Length).ToList().ForEach(c => {
-                        hasSymbolNeighbor |= (schematics.NeighborsOf(new Coordinate(row, c)).Where(s => s.IsSymbol()).Count() > 0);
-                    });
-                    
-                    currentSchematicPartNumber.EndCoordinate = new Coordinate(row, col);
-                    currentSchematicPartNumber.HasSymbolNeighbor = hasSymbolNeighbor;
-                    schematicPartNumbers.Add(currentSchematicPartNumber);
-                    currentSchematicPartNumber = null;
-                }
-
-                if (isGear)
-                {
-                    schematicGears.Add(new Gear { Position = new Coordinate(row, col) });
-                }
-            }
-        }
-
-        schematicGears.ForEach(g => {
-            g.NeighborParts = schematicPartNumbers.Where(p => p.AllCoordinates.Intersect(g.Position?.NeighborCoordinates(new Size(numRows, numCols)) ?? new List<Coordinate>()).Count() > 0).ToList();
-        });
-        
-        return (schematicPartNumbers, schematicGears);
+        Part1(corruptMemory);
+        Part2(corruptMemory);
     }
     
-
-    private static void Part1(List<PartNumber> schematicPartNumbers)
+    private static void Part1(string corruptMemory)
     {
+        var instructions = Regex.Matches(corruptMemory, "mul\\((\\d{1,3}),(\\d{1,3})\\)");
+
         // final solution
-        Console.WriteLine(@$"Part 1: {
-            schematicPartNumbers
-                .Where(p => p.HasSymbolNeighbor)
-                .Sum(p => int.Parse(p.Value))
-        }");
+        Console.WriteLine(@$"Part 1: {instructions
+                .Sum(match => int.Parse(match.Groups[1].Value) * int.Parse(match.Groups[2].Value))}");
     }
 
-    private static void Part2(List<Gear> schematicGears)
+    private static void Part2(string corruptMemory)
     {
+        var instructions = Regex.Matches(corruptMemory, "(?:do\\(\\)|don't\\(\\)|mul\\((\\d{1,3}),(\\d{1,3})\\))");
+        var enabled = true;
+
         // final solution
-        Console.WriteLine(@$"Part 2: {
-            schematicGears
-                .Where(g => g.NeighborParts.Count == 2)
-                .Sum(g => int.Parse(g.NeighborParts[0].Value) * int.Parse(g.NeighborParts[1].Value))
-        }");
-    }
+        Console.WriteLine(@$"Part 2: {instructions
+                .Sum(match =>
+                {
+                    switch (match.Groups[0].Value)
+                    {
+                        case "do()":
+                            enabled = true;
+                            break;
+                        case "don't()":
+                            enabled = false;
+                            break;
+                        default:
+                            return enabled.ToInt() * int.Parse(match.Groups[1].Value) * int.Parse(match.Groups[2].Value);
+                    }
 
-    private class PartNumber
-    {
-        public string Value { get; set; } = "";
-        public Coordinate? StartCoordinate { get; set; } = null;
-        public Coordinate? EndCoordinate { get; set; } = null;
-        public IEnumerable<Coordinate> AllCoordinates 
-        {
-            get
-            {
-                return Enumerable
-                    .Range(StartCoordinate?.Col ?? 0, Value.Length)
-                    .Select(c => new Coordinate(StartCoordinate?.Row ?? 0, c));
-            }
-        } 
-        public bool HasSymbolNeighbor { get; set; } = false;
-    }
-
-    private class Gear
-    {
-        public Coordinate? Position { get; set; } = null;
-        public List<PartNumber> NeighborParts { get; set; } = new List<PartNumber>();
+                    return 0;
+                })}");
     }
 }
