@@ -1,73 +1,116 @@
 using System.ComponentModel;
+using System.Drawing;
+using System.Net.Http.Headers;
 using System.Text.RegularExpressions;
+using System.Xml.Serialization;
 using static HelperExtensions;
 
 public static class day4
 {
+    private static readonly string XMAS = "XMAS";
+
     public static void Run()
     {
-        var scratchoffs = System.IO.File.ReadAllLines(@$"day4/input.txt").ToList();
+        var wordSearch = System.IO.File.ReadAllLines(@$"day4/input.txt").ToList();
 
-        (List<Scratchoff> scratchoffData, Dictionary<int, int> scratchoffCardCounts) = GetScratchoffData(scratchoffs);
+        Console.WriteLine($"Part 1: {FindXMASCount(wordSearch)}");
 
-        Part1(scratchoffData);
-        Part2(scratchoffCardCounts);
+        Console.WriteLine($"Part 2: {FindX_MASCount(wordSearch)}");
     }
 
-    private static (List<Scratchoff>, Dictionary<int, int>) GetScratchoffData(List<string> scratchoffs)
+    private static List<int> FindAllIndexesOf(string value, char letter)
     {
-        var scratchoffCardCounts = new Dictionary<int, int>();
-        Enumerable
-            .Range(1, scratchoffs.Count)
-            .ToList()
-            .ForEach(n => { scratchoffCardCounts[n] = 1; });
+        var foundIndexes = new List<int>();
 
-        var scratchoffData = scratchoffs.Select(s => {
-            var match = Regex.Match(s, @$"Card\s+(\d+):(?:\s+(\d+))+\s\|(?:\s+(\d+))+");
-            var cardNumber = int.Parse(match.Groups[1].Value);
-            var winningNumbers = match.Groups[2].Captures.Select(c => int.Parse(c.Value)).ToList();
-            var myNumbers = match.Groups[3].Captures.Select(c => int.Parse(c.Value)).ToList();
-            var scratchoff = new Scratchoff { CardNumber = cardNumber, WinningNumbers = winningNumbers, MyNumbers = myNumbers };
-            Enumerable
-                .Range(cardNumber + 1, scratchoff.MatchingNumbers.Count)
-                .ToList()
-                .ForEach(n => { scratchoffCardCounts[n] += 1 * scratchoffCardCounts[cardNumber]; });
-            return new Scratchoff { CardNumber = cardNumber, WinningNumbers = winningNumbers, MyNumbers = myNumbers };
-        }).ToList();
-
-        return (scratchoffData, scratchoffCardCounts);
-    }
-
-    private static void Part1(List<Scratchoff> scratchoffData)
-    {
-        // final solution
-        Console.WriteLine(@$"Part 1: {
-            scratchoffData
-                .Where(s => s.MatchingNumbers.Count > 0)
-                .Sum(s => Math.Pow(2, s.MatchingNumbers.Count - 1))
-        }");
-    }
-
-    private static void Part2(Dictionary<int, int> scratchoffCardCounts)
-    {
-        // final solution
-        Console.WriteLine(@$"Part 2: {
-            scratchoffCardCounts
-                .Sum(s => s.Value)
-        }");
-    }
-
-    private class Scratchoff
-    {
-        public int CardNumber { get; set; }
-        public List<int> WinningNumbers { get; set; } = new List<int>();
-        public List<int> MyNumbers { get; set; } = new List<int>();
-        public List<int> MatchingNumbers
+        for (int i = value.IndexOf(letter); i > -1; i = value.IndexOf(letter, i + 1))
         {
-            get
+            foundIndexes.Add(i);
+        }
+
+        return foundIndexes;
+    } 
+
+    private static int FindXMASCount(List<string> wordSearch)
+    {
+        var indexesOfX = wordSearch.Select(line => FindAllIndexesOf(line, 'X')).ToArray();
+
+        var xmasCount = 0;
+        var lineLength = wordSearch[0].Length;
+        var directions = new List<Point> {
+            new Point(-1, 0),
+            new Point(-1, 1),
+            new Point(0, 1),
+            new Point(1, 1),
+            new Point(1, 0),
+            new Point(1, -1),
+            new Point(0, -1),
+            new Point(-1, -1)
+        };
+        for (int row = 0; row < indexesOfX.Count(); row++)
+        {
+            foreach (int col in indexesOfX[row])
             {
-                return MyNumbers.Intersect(WinningNumbers).ToList();
+                foreach (Point direction in directions)
+                {
+                    for (int i = 1; i < XMAS.Count(); i++)
+                    {
+                        var rowToCheck = row + direction.X * i;
+                        var colToCheck = col + direction.Y * i;
+
+                        if (rowToCheck < 0 || colToCheck < 0 || rowToCheck >= indexesOfX.Count() || colToCheck >= lineLength)
+                        {
+                            break;
+                        }
+
+                        if (wordSearch[rowToCheck][colToCheck] != XMAS[i])
+                        {
+                            break;
+                        }
+
+                        if (i == XMAS.Count() - 1)
+                        {
+                            xmasCount++;
+                        }
+                    }
+                }
             }
-        } 
+        }
+
+        return xmasCount;
+    }
+
+    private static int FindX_MASCount(List<string> wordSearch)
+    {
+        var indexesOfA = wordSearch.Select(line => FindAllIndexesOf(line, 'A')).ToArray();
+
+        var matches = new List<string>
+        {
+            "MAS",
+            "SAM"
+        };
+
+        var x_masCount = 0;
+        var lineLength = wordSearch[0].Length;
+
+        for (int row = 0; row < wordSearch.Count; row++)
+        {
+            foreach (int col in indexesOfA[row])
+            {
+                if (row - 1 < 0 || col - 1 < 0 || row + 1 >= wordSearch.Count || col + 1 >= lineLength)
+                {
+                    continue;
+                }
+
+                var nwtose = $"{wordSearch[row - 1][col - 1]}A{wordSearch[row + 1][col + 1]}";
+                var netosw = $"{wordSearch[row - 1][col + 1]}A{wordSearch[row + 1][col - 1]}";
+
+                if (matches.Contains(nwtose) && matches.Contains(netosw))
+                {
+                    x_masCount++;
+                }
+            }
+        }
+
+        return x_masCount;
     }
 }
